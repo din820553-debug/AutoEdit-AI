@@ -1,20 +1,18 @@
-# AutoEdit AI
+# AutoEdit AI — Android Shorts Maker
 
-Android short-video editing app. First development build: import clips and music, automatically plan cuts to a detected rhythm, customize editing parameters, and export vertical MP4 on-device.
+An early Android MVP for **automatic short edits from your own video clips**. Import videos and optional music; set tempo, duration, speed, filters, zoom, output quality and audio volume. Edit planning runs on the phone. MP4 files are saved under `Movies/AutoEditAI`.
 
-## Download APK
-Open **Actions → Android APK → newest successful run → Artifacts → AutoEditAI-debug-apk** (sign in to GitHub if required). Install `app-debug.apk`.
+## How to install
+Open [GitHub Actions](https://github.com/din820553-debug/AutoEdit-AI/actions/workflows/android.yml), choose a **successful** Android APK run, open **Artifacts**, and download `AutoEditAI-debug-apk`. Unzip and install `app-debug.apk`. This is an unsigned release-style *debug* APK, not a Play Store distribution.
 
-This project is an early **MVP**, not an autonomous semantic AI video director. It uses local signal processing to estimate tempo, automatic cut planning, and Media3 Transformer. No videos are uploaded to an external server.
+## Tech
+Kotlin, Android Media3 Transformer, MediaExtractor + MediaCodec for local music-energy analysis, MediaStore. Min Android 10. JDK 17, Android SDK 36, Gradle 8.14.3.
+
+## Scope and caveats
+This first version is a functional baseline, **not** a model-trained AI director. Rhythm detection is approximate; manually override BPM/beat offset if needed. It does not identify cars or judge shots semantically, and does not implement professional motion blur, crossfades, or optical flow. Hardware codec compatibility varies by device. No media is uploaded.
 
 ## Build
-JDK 17 + Android SDK 35. `gradle testDebugUnitTest assembleDebug`. The workflow configures the build environment on GitHub Actions.
+`gradle testDebugUnitTest assembleDebug` (with JDK 17 / Android SDK).
 
-## Planned
-Shot quality scoring, camera motion detection, motion blur, speed ramps, more transitions, preview editing, background export queue, and advanced AI selection.
-
-## Privacy
-Source media and exports stay on the device. The Android system file picker supplies temporary URI access.
-
-## License
-No license declared yet.
+## Licensing
+No software license has yet been granted.
