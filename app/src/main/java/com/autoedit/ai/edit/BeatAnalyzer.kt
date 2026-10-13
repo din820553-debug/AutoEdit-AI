@@ -20,7 +20,7 @@ data class BeatAnalysis(val bpm: Int, val beatTimesMs: List<Long>)
  * Not equivalent to an audio production-grade onset detector.
  */
 object BeatAnalyzer {
-    fun analyze(context: Context, uri: Uri): BeatAnalysis? {
+    fun analyze(context: Context, uri: Uri, startMs: Long = 0L): BeatAnalysis? {
         val extractor = MediaExtractor()
         var decoder: MediaCodec? = null
         var decoderStarted = false
@@ -38,6 +38,7 @@ object BeatAnalyzer {
             }
             if (audioTrack == -1 || format == null) return null
             extractor.selectTrack(audioTrack)
+            if (startMs > 0) extractor.seekTo(startMs * 1000, MediaExtractor.SEEK_TO_PREVIOUS_SYNC)
             val mime = format.getString(MediaFormat.KEY_MIME) ?: return null
             decoder = MediaCodec.createDecoderByType(mime)
             decoder.configure(format, null, null, 0)
@@ -55,6 +56,7 @@ object BeatAnalyzer {
             var inputDone = false
             var outputDone = false
             var spins = 0
+            var firstDecodedMs = -1L
 
             while (!outputDone && energies.size < 2500 && spins++ < 25000) {
                 if (!inputDone) {
@@ -62,7 +64,7 @@ object BeatAnalyzer {
                     if (index >= 0) {
                         val buffer = decoder.getInputBuffer(index)!!
                         val size = extractor.readSampleData(buffer, 0)
-                        if (size < 0 || extractor.sampleTime > 50_000_000) {
+                        if (size < 0 || extractor.sampleTime > (startMs + 40_000L) * 1000L) {
                             decoder.queueInputBuffer(index, 0, 0, 0, MediaCodec.BUFFER_FLAG_END_OF_STREAM)
                             inputDone = true
                         } else {
@@ -82,6 +84,7 @@ object BeatAnalyzer {
                     else -> if (index >= 0) {
                         val bytes = decoder.getOutputBuffer(index)
                         if (bytes != null && info.size > 0) {
+                            if (firstDecodedMs < 0) firstDecodedMs = (info.presentationTimeUs / 1000).coerceAtLeast(0)
                             bytes.order(ByteOrder.LITTLE_ENDIAN)
                             bytes.position(info.offset)
                             bytes.limit(info.offset + info.size)
@@ -116,7 +119,10 @@ object BeatAnalyzer {
                     }
                 }
             }
-            return estimate(energies)
+            return estimate(energies)?.let { result ->
+                val offset = firstDecodedMs.coerceAtLeast(0)
+                result.copy(beatTimesMs = result.beatTimesMs.map { it + offset })
+            }
         } catch (_: Exception) {
             return null
         } finally {
