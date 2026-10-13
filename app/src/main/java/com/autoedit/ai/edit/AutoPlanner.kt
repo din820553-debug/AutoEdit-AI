@@ -23,7 +23,7 @@ data class EditSettings(
 
 object AutoPlanner {
     /** Beats are absolute positions within the original music file. */
-    fun plan(sources: List<SourceClip>, cfg: EditSettings, beats: List<Long>): List<Cut> {
+    fun plan(sources: List<SourceClip>, cfg: EditSettings, beats: List<Long>, candidates: Map<String, List<ShotCandidate>> = emptyMap()): List<Cut> {
         require(sources.isNotEmpty()) { "Выберите хотя бы одно видео" }
         require(cfg.durationMs in 1_000L..120_000L)
         require(cfg.speed in 0.5f..2f)
@@ -42,6 +42,7 @@ object AutoPlanner {
         }
         edges += cfg.durationMs
         val cursors = LongArray(valid.size) { (valid[it].durationMs / 8).coerceAtMost(1200) }
+        val used = IntArray(valid.size)
         val result = mutableListOf<Cut>()
         for (i in 0 until edges.lastIndex) {
             val requestedOutput = edges[i + 1] - edges[i]
@@ -56,7 +57,11 @@ object AutoPlanner {
             val inputLength = (requestedOutput * effectiveSpeed).toLong().coerceAtMost(maxInput)
             if (inputLength <= 0) continue
             val maxStart = (src.durationMs - inputLength).coerceAtLeast(0)
-            val begin = cursors[idx].coerceAtMost(maxStart)
+            val selected = candidates[src.uri].orEmpty()
+            val suggested = if (selected.isEmpty()) null
+                else selected[used[idx] % selected.size].centerMs - inputLength / 3
+            used[idx]++
+            val begin = (suggested ?: cursors[idx]).coerceIn(0L, maxStart)
             result += Cut(src.uri, begin, begin + inputLength, effectiveSpeed, i)
             cursors[idx] = if (maxStart == 0L) 0 else (begin + inputLength + 250) % (maxStart + 1)
         }
