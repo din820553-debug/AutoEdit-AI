@@ -27,7 +27,8 @@ jobs:
         shell: bash
         run: |
           echo "ANDROID_HOME=$ANDROID_HOME"
-          which sdkmanager
+          export PATH="$ANDROID_HOME/cmdline-tools/latest/bin:$PATH"
+          command -v sdkmanager
           sdkmanager --version
           sdkmanager --install "platforms;android-36" "build-tools;36.0.0"
 
