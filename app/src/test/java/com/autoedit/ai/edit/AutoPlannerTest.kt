@@ -22,4 +22,20 @@ class AutoPlannerTest {
         try { AutoPlanner.plan(emptyList(),EditSettings(),emptyList()); fail("should reject") }
         catch (_: IllegalArgumentException) { }
     }
+
+    @Test fun highlightTimestampPrioritized() {
+        val source = SourceClip("a", 20_000)
+        val shots = mapOf("a" to listOf(ShotCandidate("a", 12_000, 90.0)))
+        val cuts = AutoPlanner.plan(listOf(source), EditSettings(durationMs=2000, cutEveryMs=2000), emptyList(), shots)
+        assertEquals(1, cuts.size)
+        assertEquals(12_000L - cuts[0].outputDurationMs / 3, cuts[0].inMs)
+    }
+    @Test fun shortSourceNeverExceedsDuration() {
+        val clips = AutoPlanner.plan(
+            listOf(SourceClip("a", 600)),
+            EditSettings(durationMs=5000, cutEveryMs=750, speed=1f),
+            emptyList()
+        )
+        assertTrue(clips.all { it.outMs <= 600 && it.inMs >= 0 && it.outMs > it.inMs })
+    }
 }
